@@ -1,18 +1,35 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
-const dontenv = require('dotenv');
+const dotenv = require('dotenv');
 
 const app = express();
 app.use(bodyParser.json());
-dontenv.config();
+dotenv.config();
 
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN; // Add your verify token in the .env file
 const LIBRETRANSLATE_API = 'https://libretranslate.com/translate';
 
 // Temporary storage for user selections (use a database for real-world scenarios)
 const userLanguagePreferences = {};
 
+// Webhook verification
+app.get('/webhook', (req, res) => {
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    // Check if the mode and token are valid
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+        console.log('Webhook verified');
+        res.status(200).send(challenge);
+    } else {
+        res.sendStatus(403);
+    }
+});
+
+// Webhook endpoint to handle messages
 app.post('/webhook', async (req, res) => {
     const messageEvent = req.body.entry[0].messaging[0];
     const senderId = messageEvent.sender.id;
